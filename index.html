@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#163f35">
+<title>WISE ENT — Simulation</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f2f6f2;color:#17221d;font-family:Arial,sans-serif}
+header{background:#163f35;color:white;padding:25px 20px 35px;border-radius:0 0 25px 25px}
+.brand{font-size:23px;font-weight:bold;letter-spacing:2px}
+.tag{font-size:11px;background:#ffedb5;color:#55420a;padding:7px 10px;border-radius:20px;display:inline-block;margin-top:12px;font-weight:bold}
+main{max-width:520px;margin:auto;padding:18px}
+.balance{font-size:13px;margin-top:25px;color:#dce9df}
+.amount{font-size:36px;font-weight:bold;margin-top:8px}
+.card{background:white;border-radius:17px;padding:18px;margin:15px 0;box-shadow:0 3px 15px #0000000c}
+h2{font-size:18px}
+button{border:0;border-radius:12px;padding:14px;background:#163f35;color:white;font-weight:bold;font-size:15px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions button:nth-child(even){background:#e7f1e7;color:#163f35}
+input{width:100%;padding:14px;border:1px solid #ddd;border-radius:10px;font-size:17px;margin:7px 0 14px}
+label{font-size:13px;color:#68756e}
+.full{width:100%}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.small{font-size:12px;color:#68756e;line-height:1.5}
+.tx{border-top:1px solid #eee;padding:13px 0;display:flex;justify-content:space-between;gap:8px}
+.plus{color:#16834b}.minus{color:#b13e36}
+.hidden{display:none!important}
+#lock{max-width:400px;margin:15vh auto;padding:22px}
+footer{text-align:center;font-size:11px;color:#68756e;padding:20px}
+</style>
+</head>
+<body>
+<section id="lock" class="card">
+ <div class="brand" style="color:#163f35">WISE ENT</div>
+ <div class="tag">SIMULATION FICTIVE</div>
+ <h2 id="lockTitle">Créer votre code PIN</h2>
+ <p class="small">Choisissez un code de démonstration à 6 chiffres.</p>
+ <label>Code PIN</label>
+ <input id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="6 chiffres">
+ <button class="full" onclick="unlock()">Continuer</button>
+ <p id="error" class="small"></p>
+ <p class="small">Prototype fictif. N'utilisez jamais un vrai code PIN.</p>
+</section>
+
+<div id="app" class="hidden">
+<header>
+ <div class="brand">WISE ENT</div>
+ <div class="tag">COMPTE DE SIMULATION · ARGENT FICTIF</div>
+ <div class="balance">Solde fictif disponible</div>
+ <div class="amount" id="balance">22 450,80 €</div>
+</header>
+<main>
+ <section class="card">
+  <h2>Mes opérations</h2>
+  <div class="actions">
+   <button onclick="openOp('add')">＋ Ajouter</button>
+   <button onclick="openOp('send')">↗ Envoyer</button>
+   <button onclick="openOp('receive')">↓ Recevoir</button>
+   <button onclick="showCard()">▣ Carte virtuelle</button>
+  </div>
+ </section>
+
+ <section class="card hidden" id="operation">
+  <div class="row"><h2 id="opTitle">Opération</h2>
+  <button onclick="closeOp()" style="padding:7px 12px">✕</button></div>
+  <label>Montant fictif en euros</label>
+  <input id="opAmount" type="number" min="0.01" step="0.01" placeholder="0,00">
+  <div id="recipientBox" class="hidden">
+   <label>Nom du destinataire fictif</label>
+   <input id="recipient" placeholder="Exemple : Alex">
+  </div>
+  <button class="full" onclick="confirmOp()">Confirmer la simulation</button>
+  <p class="small">Aucun argent réel ne sera envoyé ou reçu.</p>
+ </section>
+
+ <section class="card hidden" id="virtualCard">
+  <h2>Carte virtuelle fictive</h2>
+  <div style="background:#163f35;color:white;padding:22px;border-radius:15px">
+   <b>WISE ENT</b>
+   <p style="font-size:22px;margin:30px 0">•••• •••• •••• 2048</p>
+   <small>CARTE DE DÉMONSTRATION</small>
+  </div>
+  <p class="small">Carte imaginaire, impossible à utiliser pour payer.</p>
+ </section>
+
+ <section class="card">
+  <div class="row">
+   <h2>Historique</h2>
+   <button onclick="resetData()" style="font-size:11px;padding:8px">Réinitialiser</button>
+  </div>
+  <div id="history"><p class="small">Aucune opération.</p></div>
+ </section>
+ <footer>WISE ENT est indépendant et non affilié à Wise. Tout est fictif : aucun compte bancaire, aucun paiement et aucun transfert réel.</footer>
+</main>
+</div>
+
+<script>
+const initial=22450.80;
+let pin=localStorage.getItem("wise_pin")||"";
+let data;
+try{data=JSON.parse(localStorage.getItem("wise_data"))}catch(e){data=null}
+if(!data)data={balance:initial,history:[]};
+let mode="";
+
+if(pin)document.getElementById("lockTitle").textContent="Déverrouiller WISE ENT";
+
+function unlock(){
+ let v=document.getElementById("pin").value;
+ if(!/^\d{6}$/.test(v)){error.textContent="Entre exactement 6 chiffres.";return}
+ if(!pin){pin=v;localStorage.setItem("wise_pin",pin)}
+ else if(v!==pin){error.textContent="Code incorrect.";return}
+ document.getElementById("lock").classList.add("hidden");
+ document.getElementById("app").classList.remove("hidden");
+ render();
+}
+function save(){localStorage.setItem("wise_data",JSON.stringify(data));render()}
+function money(n){return n.toLocaleString("fr-FR",{style:"currency",currency:"EUR"})}
+function render(){
+ balance.textContent=money(data.balance);
+ history.innerHTML="";
+ if(!data.history.length){history.innerHTML='<p class="small">Aucune opération.</p>';return}
+ data.history.slice().reverse().forEach(t=>{
+  let div=document.createElement("div");div.className="tx";
+  let left=document.createElement("span");left.textContent=t.name;
+  let right=document.createElement("b");
+  right.textContent=(t.delta>=0?"+":"−")+money(Math.abs(t.delta));
+  right.className=t.delta>=0?"plus":"minus";
+  div.append(left,right);history.append(div);
+ });
+}
+function openOp(m){
+ mode=m;operation.classList.remove("hidden");virtualCard.classList.add("hidden");
+ opTitle.textContent={add:"Ajouter un solde fictif",send:"Virement simulé",receive:"Recevoir un virement fictif"}[m];
+ recipientBox.classList.toggle("hidden",m!=="send");
+ opAmount.value="";recipient.value="";
+}
+function closeOp(){operation.classList.add("hidden")}
+function showCard(){operation.classList.add("hidden");virtualCard.classList.toggle("hidden")}
+function confirmOp(){
+ let n=Number(opAmount.value);
+ let name=recipient.value.trim();
+ if(!Number.isFinite(n)||n<=0){alert("Entre un montant valide.");return}
+ if(mode==="send"&&!name){alert("Entre un nom fictif.");return}
+ if(mode==="send"&&n>data.balance){alert("Solde fictif insuffisant.");return}
+ let delta=mode==="send"?-n:n;
+ data.balance+=delta;
+ let title=mode==="add"?"Ajout fictif":mode==="send"?"Virement fictif vers "+name:"Virement fictif reçu";
+ data.history.push({name:title,delta:delta});
+ save();closeOp();
+}
+function resetData(){
+ if(confirm("Remettre le solde initial et effacer l'historique ?")){
+  data={balance:initial,history:[]};save();
+ }
+}
+</script>
+</body>
+</html>
